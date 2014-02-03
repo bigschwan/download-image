@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="manifest">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="version" type="xs:string"/>
+        <xs:element name="file-format" type="FileFormat"/>
+        <xs:element name="bundle" type="Bundle" minOccurs="0" maxOccurs="1"/>
+        <xs:element name="image" type="Image"/>
+        <xs:element name="signature" type="Signature"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:simpleType name="FileFormat">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="RAW"/>
+      <xs:enumeration value="VHD"/>
+      <xs:enumeration value="VMDK"/>
+      <xs:enumeration value="BUNDLE"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="Bundle">
+    <xs:sequence>
+      <xs:element name="encrypted-key" type="xs:hexBinary"/>
+      <xs:element name="encrypted-iv" type="xs:hexBinary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="Image">
+    <xs:sequence>
+      <xs:element name="size" type="xs:long"/>
+      <xs:element name="parts" type="Parts"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="Parts">
+    <xs:sequence>
+      <xs:element minOccurs="1" maxOccurs="unbounded" name="part" type="Part"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:int"/>
+  </xs:complexType>
+  <xs:complexType name="Part">
+    <xs:sequence>
+      <xs:element name="byte-range" type="ByteRange"/>
+      <xs:element name="get-url" type="xs:anyURI"/>
+    </xs:sequence>
+    <xs:attribute name="index" type="xs:int"/>
+  </xs:complexType>
+  <xs:complexType name="ByteRange">
+    <xs:attribute name="start" type="xs:long"/>
+    <xs:attribute name="end" type="xs:long"/>
+  </xs:complexType>
+  <xs:complexType name="Signature">
+    <xs:simpleContent>
+      <xs:extension base="xs:hexBinary">
+        <xs:attribute name="algorithm" type="xs:string"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+</xs:schema>

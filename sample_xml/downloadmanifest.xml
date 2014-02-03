@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <version>2014-01-14</version>
+  <file-format>BUNDLE</file-format>
+  <bundle>
+    <encrypted-key>abcd1234</encrypted-key>
+    <encrypted-iv>abcd1234</encrypted-iv>
+  </bundle>
+  <image>
+    <size>20971519</size>
+    <parts count="2">
+      <part index="0">
+        <byte-range end="10485759" start="0"/>
+        <get-url>https://vasya-image-test.s3.amazonaws.com/7773f4a0-2c30-4137-9002-484bcc26c99d/indowsserver2003r2_ent_x86.kvm.img.part0?AWSAccessKeyId=AKIAIYPTN2FI2ZXJPM5A&amp;Expires=1387746903&amp;Signature=dX9C0Lf%2F%2B9KwL3c9GShip6%2BEBME%3D</get-url>
+      </part>
+      <part index="1">
+        <byte-range end="20971519" start="10485760"/>
+        <get-url>https://vasya-image-test.s3.amazonaws.com/7773f4a0-2c30-4137-9002-484bcc26c99d/indowsserver2003r2_ent_x86.kvm.img.part1?AWSAccessKeyId=AKIAIYPTN2FI2ZXJPM5A&amp;Expires=1387746903&amp;Signature=nysedY4up4aNItgi64ftoKiSgvs%3D</get-url>
+      </part>
+    </parts>
+  </image>
+  <!--
+        StringToSign = canonicalize(version) + canonicalize(file-format) + (bundle ? canonicalize(bundle) : "") + canonicalize(image)
+        TODO:  What does canonicalize mean?
+        Signature = RSA-SHA256(StringToSign)
+    -->
+  <signature algorithm="RSA-SHA256">abcd1234</signature>
+</manifest>
