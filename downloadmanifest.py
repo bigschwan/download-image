@@ -2,31 +2,9 @@ import logging
 import lxml.etree
 import lxml.objectify
 import requests
+from io import StringIO
+from downloadpart import DownloadPart
 
-
-_BUFSIZE = 8192
-
-class DownloadPart(object):
-    def __init__(self, get_url, part_index, bytes_start, bytes_end):
-        self.get_url = get_url
-        self.part_index = part_index
-        self.bytes_start = long(bytes_start)
-        self.bytes_end = long(bytes_end)
-        self.size = long(self.bytes_end-self.bytes_start)
-
-
-    def download(self, dest_fileobj, chunk_size=None):
-        chunk_size = chunk_size or _BUFSIZE
-        r = requests.get(self.get_url, stream=True)
-        for chunk in r.iter_content(chunk_size):
-            dest_fileobj.write(chunk)
-        dest_fileobj.flush()
-
-
-    def __repr__(self):
-        return 'DownloadPart({0}, {1}, {2}, {3})'.format(
-            repr(self.part_index), repr(self.get_url),
-            repr(self.bytes_start), repr(self.bytes_end))
 
 
 class DownloadManifest(object):
@@ -67,6 +45,15 @@ class DownloadManifest(object):
             if manifest_fileobj:
                 manifest_fileobj.close()
 
+    @classmethod
+    def read_from_url(cls, manifest_url, chunk_size=8192, xsd=None):
+        fileobj = StringIO()
+        r = requests.get(manifest_url, stream=True)
+        for chunk in r.iter_content(chunk_size):
+            fileobj.write(chunk)
+        fileobj.flush()
+        return cls._read_from_fileobj(manifest_fileobj=fileobj, xsd=xsd)
+
 
     @classmethod
     def _read_from_fileobj(cls, manifest_fileobj, xsd=None):
@@ -90,13 +77,15 @@ class DownloadManifest(object):
             bytes_start = byte_range.get('start')
             bytes_end = byte_range.get('end')
             get_url = xml_part.__getattr__('get-url')
-            manifest.image_parts[part_index] = DownloadPart(get_url=get_url,
-                                                            part_index=part_index,
-                                                            bytes_start=bytes_start,
-                                                            bytes_end=bytes_end)
+            manifest.image_parts[part_index] = DownloadPart(
+                                               get_url=get_url,
+                                               part_index=part_index,
+                                               bytes_start=bytes_start,
+                                               bytes_end=bytes_end)
         if len(manifest.image_parts) != manifest.part_count:
             raise ValueError('Part count {0} does not equal parts found:{1}'
-                             .format(len(manifest.image_parts)), manifest.part_count)
+                             .format(len(manifest.image_parts)),
+                                     manifest.part_count)
         for index, part in enumerate(manifest.image_parts):
             if part is None:
                 raise ValueError('part {0} must not be None'.format(index))
