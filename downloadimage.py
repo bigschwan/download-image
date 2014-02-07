@@ -8,7 +8,6 @@ import subprocess
 from io import BytesIO
 import logging
 from downloadmanifest import DownloadManifest
-from requests.exceptions import HTTPError
 
 
 class DownloadImage(object):
@@ -171,14 +170,8 @@ class DownloadImage(object):
     def _download_parts_to_fileobj(self, manifest, dest_fileobj):
         bytes = 0
         for part in manifest.image_parts:
-            try:
-                self.log.debug('Downloading part:' + str(part.get_url))
-                bytes += part.download(dest_fileobj=dest_fileobj) or 0
-            except HTTPError as HE:
-                self.log.critical('Failed to download part:'
-                                  + str(part.get_url) + ", err:" + str(HE))
-                HE.args = [str(HE.message) + ", URL: " + str(part.get_url)]
-                raise HE
+            self.log.debug('Downloading part:' + str(part.get_url))
+            bytes += part.download(dest_fileobj=dest_fileobj) or 0
         return bytes
 
     def _download_to_unbundlestream(self,

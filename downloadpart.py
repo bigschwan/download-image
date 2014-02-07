@@ -1,6 +1,7 @@
 __author__ = 'clarkmatthew'
 
 import requests
+from requests.exceptions import HTTPError
 
 
 class DownloadPart(object):
@@ -21,7 +22,11 @@ class DownloadPart(object):
         bytes = 0
         chunk_size = chunk_size or self.chunk_size
         r = requests.get(self.get_url, stream=True)
-        r.raise_for_status()
+        try:
+            r.raise_for_status()
+        except HTTPError as HE:
+            HE.args = [str(self) + "\n" + str(HE.message)]
+            raise HE
         for chunk in r.iter_content(chunk_size):
             print 'chunk' + str(chunk)
             dest_fileobj.write(chunk)
