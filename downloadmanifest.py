@@ -6,7 +6,6 @@ from io import BytesIO
 from downloadpart import DownloadPart
 
 
-
 class DownloadManifest(object):
     def __init__(self, loglevel=None):
         self.log = logging.getLogger(self.__class__.__name__)
@@ -21,7 +20,6 @@ class DownloadManifest(object):
         self.image_parts = []
         self.signature = None
         self.signature_algorithm = None
-
 
     @classmethod
     def _validate_manifest(cls, manifest_fileobj, xsd_fileobj):
@@ -55,11 +53,10 @@ class DownloadManifest(object):
         fileobj.flush()
         return cls._read_from_fileobj(manifest_fileobj=fileobj, xsd=xsd)
 
-
     @classmethod
     def _read_from_fileobj(cls, manifest_fileobj, xsd=None):
         if xsd is not None:
-            cls._validate_manifest(manifest_fileobj,xsd)
+            cls._validate_manifest(manifest_fileobj, xsd)
         #manifest_fileobj.seek(0)
         xml = lxml.objectify.parse(manifest_fileobj).getroot()
         manifest = cls()
@@ -79,25 +76,21 @@ class DownloadManifest(object):
             bytes_end = byte_range.get('end')
             get_url = xml_part.__getattr__('get-url')
             manifest.image_parts[part_index] = DownloadPart(
-                                               get_url=get_url,
-                                               part_index=part_index,
-                                               bytes_start=bytes_start,
-                                               bytes_end=bytes_end)
+                get_url=get_url,
+                part_index=part_index,
+                bytes_start=bytes_start,
+                bytes_end=bytes_end)
         if len(manifest.image_parts) != manifest.part_count:
-            raise ValueError('Part count {0} does not equal parts found:{1}'
-                             .format(len(manifest.image_parts)),
-                                     manifest.part_count)
+            raise ValueError(
+                'Part count {0} does not equal parts found:{1}'
+                .format(len(manifest.image_parts)), manifest.part_count)
         for index, part in enumerate(manifest.image_parts):
             if part is None:
                 raise ValueError('part {0} must not be None'.format(index))
         return manifest
-
 
     def __repr__(self):
         buf = ""
         for key in self.__dict__:
                 buf += "\n" + str(key) + " -->: " + str(self.__dict__[key])
         return buf
-
-
-

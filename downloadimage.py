@@ -12,31 +12,32 @@ from requests.exceptions import HTTPError
 
 
 class DownloadImage(object):
-    _chunk_size=8192
+    _chunk_size = 8192
 
     def __init__(self, **kwargs):
         parser = argparse.ArgumentParser(description=
                                          "Download parts from manifest")
         parser.add_argument('-m', '--manifest', dest='manifest', required=True,
-                help='''Path to 'download-manifest. Use '-' to read manifest
-                from stdin''')
-        parser.add_argument('-d', '--dest',dest='destination', required=True,
-                help='''Destination path to write image to.
-                Use '-' for stdout.''')
-        parser.add_argument('-x', '--xsd',dest='xsd', default=None,
-                help='''Path to 'download-manifest xsd used
-                to validate manfiest xml.''')
-        parser.add_argument('--toolspath', dest='toolspath',default=None,
-                help='''Local path to euca2ools.''')
+                            help='''Path to 'download-manifest. Use '-' to read
+                            manifest from stdin''')
+        parser.add_argument('-d', '--dest', dest='destination', required=True,
+                            help='''Destination path to write image to.
+                            Use '-' for stdout.''')
+        parser.add_argument('-x', '--xsd', dest='xsd', default=None,
+                            help='''Path to 'download-manifest xsd used
+                            to validate manfiest xml.''')
+        parser.add_argument('--toolspath', dest='toolspath', default=None,
+                            help='''Local path to euca2ools.''')
         parser.add_argument('--maxbytes', dest='maxbytes', default=0,
-                help='''Maximum bytes allowed to be written to the
-                        destination.''')
+                            help='''Maximum bytes allowed to be written to the
+                            destination.''')
         parser.add_argument('--debug', dest='debug', default=False,
-                action='store_true', help='''Enable debug to stdout''')
+                            action='store_true',
+                            help='''Enable debug to stdout''')
         parser.add_argument('--logfile', dest='logfile', default=None,
-                help='''log file path to write to''')
+                            help='''log file path to write to''')
         parser.add_argument('--loglevel', dest='loglevel', default='WARNING',
-                help='''log level for output''')
+                            help='''log level for output''')
 
         #Set any kwargs from init to default values for parsed args...
         #Handle the cli arguments...
@@ -53,15 +54,15 @@ class DownloadImage(object):
                         arg_value.append(kwargs[kwarg])
                     arg_list.extend(arg_value)
         self.args = parser.parse_args(arg_list)
-        self.setup_logger()
-        self.log.debug('Parsed Args: '+ str(self.args))
-        self.configure()
+        self._setup_logger()
+        self.log.debug('Parsed Args: ' + str(self.args))
+        self._setup()
 
-    def setup_logger(self):
+    def _setup_logger(self):
         self.log = logging.getLogger(self.__class__.__name__)
         loglevel = str(self.args.loglevel).upper() or 'WARNING'
         fmt = logging.Formatter('%(asctime)s-%(levelname)s:%(name)s(' +
-                                str(os.getpid()) +'): %(message)s')
+                                str(os.getpid()) + '): %(message)s')
         if self.args.debug:
             loglevel = logging.DEBUG
         elif hasattr(logging, loglevel):
@@ -71,7 +72,8 @@ class DownloadImage(object):
         self.log.setLevel(loglevel)
         if not self.log.handlers:
             if self.args.logfile:
-                self.log.handlers.append(logging.FileHandler(self.args.logfile))
+                self.log.handlers.append(
+                    logging.FileHandler(self.args.logfile))
             if self.args.debug:
                 self.log.handlers.append(logging.StreamHandler(sys.stdout))
         for hndlr in self.log.handlers:
@@ -79,7 +81,7 @@ class DownloadImage(object):
             hndlr.setFormatter(fmt)
             self.log.addHandler(hndlr)
 
-    def configure(self):
+    def _setup(self):
         self.log.debug('Starting configure...')
         #Get optional destination directory...
         dest_file = self.args.destination
@@ -95,6 +97,41 @@ class DownloadImage(object):
         #Read the manifest from src provided into a manifest obj...
         self._get_download_manifest_obj()
 
+    def _read_manifest_from_stdin(self):
+        self.log.debug('Reading Manifest from stdin')
+        fileobj = BytesIO()
+        while True:
+            chunk = sys.stdin.read(self._chunk_size)
+            if not chunk:
+                break
+            self.log.debug('Chunk:' + str(chunk))
+            fileobj.write(chunk)
+        fileobj.flush()
+        fileobj.seek(0)
+        with fileobj:
+            manifest = DownloadManifest._read_from_fileobj(
+                manifest_fileobj=fileobj,
+                xsd=self.args.xsd)
+        return manifest
+
+    def _read_manifest_from_file(self):
+        self.log.debug('Reading from local manifest file')
+        manifest_path = os.path.expanduser(os.path.abspath(
+            self.args.manifest))
+        if not os.path.exists(manifest_path):
+            raise ArgumentTypeError("Manifest '{0}' does not exist"
+                                    .format(self.args.manifest))
+        if not os.path.isfile(manifest_path):
+            raise ArgumentTypeError("Manifest '{0}' is not a file"
+                                    .format(self.args.manifest))
+        #Read manifest into BundleManifest obj...
+        return DownloadManifest.read_from_file(manifest_path, self.args.xsd)
+
+    def _read_manifest_from_url(self):
+        self.log.debug('Reading from remote manifest from url')
+        return DownloadManifest.read_from_url(manifest_url=self.args.manifest,
+                                              xsd=self.args.xsd)
+
     def _get_download_manifest_obj(self):
         self.log.debug('Create DownloadManifest obj from the manifest '
                        'argument...')
@@ -102,61 +139,29 @@ class DownloadImage(object):
         xsd_file = self.args.xsd
         manifest_url = None
         if manifest:
-            if isinstance(manifest, DownloadManifest):
-                return
-            if manifest == '-':
-                self.log.debug('Reading Manifest from stdin')
-                #fileobj = os.fdopen(os.dup(os.sys.stdin.fileno()))
-                fileobj = BytesIO()
-                while True:
-                    chunk = sys.stdin.read(self._chunk_size)
-                    if not chunk:
-                        break
-                    self.log.debug('Chunk:' + str(chunk))
-                    fileobj.write(chunk)
-                fileobj.flush()
-                fileobj.seek(0)
-                with fileobj:
-                    self.args.manifest = DownloadManifest._read_from_fileobj(
-                                         manifest_fileobj=fileobj,
-                                         xsd=xsd_file)
-                return
-
-            #see if manifest is a url or local path
-            try:
-                parsed_url = urlparse(str(manifest))
-            except Exception as pe:
-                self.log.debug('Error parsing manifest argument as url,'
-                               'trying local path:' + str(pe))
-
-
-
-            if not parsed_url or not parsed_url.scheme:
-                self.log.debug('Reading from local manifest file')
-                manifest_path = os.path.expanduser(os.path.abspath(
-                    self.args.manifest))
-                if not os.path.exists(manifest_path):
-                    raise ArgumentTypeError("Manifest '{0}' does not exist"
-                                        .format(self.args.manifest))
-                if not os.path.isfile(manifest_path):
-                    raise ArgumentTypeError("Manifest '{0}' is not a file"
-                                        .format(self.args.manifest))
-                #Read manifest into BundleManifest obj...
-                self.args.manifest = DownloadManifest.read_from_file(
-                                        manifest_path, xsd_file)
-                return
-            else:
-                self.log.debug('Reading from remote manifest from url')
-                #For now limit urls to http(s)...
-                if not parsed_url.scheme in ['http', 'https']:
-                    raise ArgumentTypeError('Manifest url only supports '
-                                            'http, https at this time')
-                self.args.manifest = DownloadManifest.read_from_url(
-                                        manifest_url=str(manifest),
-                                        xsd= xsd_file)
-                return
+            if not isinstance(manifest, DownloadManifest):
+                if manifest == '-':
+                    self.args.manifest = self._read_manifest_from_stdin()
+                else:
+                    #see if manifest is a url or local path
+                    try:
+                        parsed_url = urlparse(str(manifest))
+                    except Exception as pe:
+                        self.log.debug('Error parsing manifest argument as'
+                                       ' url, trying local path:' + str(pe))
+                    if not parsed_url or not parsed_url.scheme:
+                        self.args.manifest = self._read_manifest_from_file()
+                    else:
+                        self.log.debug('Reading from remote manifest from url')
+                        #For now limit urls to http(s)...
+                        if not parsed_url.scheme in ['http', 'https']:
+                            raise ArgumentTypeError('Manifest url only '
+                                                    'supports http, https at '
+                                                    'this time')
+                        self.args.manifest = self._read_manifest_from_url()
         else:
             raise argparse.ArgumentError(None, 'Manifest is required (-m)')
+        return self.args.manifest
 
     @classmethod
     def _open_pipe_fileobjs(cls):
@@ -172,7 +177,7 @@ class DownloadImage(object):
             except HTTPError as HE:
                 self.log.critical('Failed to download part:'
                                   + str(part.get_url) + ", err:" + str(HE))
-                HE.args= [str(HE.message) + ", URL: " +str(part.get_url)]
+                HE.args = [str(HE.message) + ", URL: " + str(part.get_url)]
                 raise HE
         return bytes
 
@@ -208,7 +213,8 @@ class DownloadImage(object):
         finally:
             try:
                 unbundle_ps.terminate()
-            except: pass
+            except:
+                pass
             msg = 'Wrote "' + str(bytes) + '" to unbundlestream'
             if bytes:
                 self.log.debug(msg)
