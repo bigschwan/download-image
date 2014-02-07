@@ -2,7 +2,7 @@ import logging
 import lxml.etree
 import lxml.objectify
 import requests
-from io import StringIO
+from io import BytesIO
 from downloadpart import DownloadPart
 
 
@@ -47,8 +47,9 @@ class DownloadManifest(object):
 
     @classmethod
     def read_from_url(cls, manifest_url, chunk_size=8192, xsd=None):
-        fileobj = StringIO()
+        fileobj = BytesIO()
         r = requests.get(manifest_url, stream=True)
+        r.raise_for_status()
         for chunk in r.iter_content(chunk_size):
             fileobj.write(chunk)
         fileobj.flush()
@@ -59,7 +60,7 @@ class DownloadManifest(object):
     def _read_from_fileobj(cls, manifest_fileobj, xsd=None):
         if xsd is not None:
             cls._validate_manifest(manifest_fileobj,xsd)
-        manifest_fileobj.seek(0)
+        #manifest_fileobj.seek(0)
         xml = lxml.objectify.parse(manifest_fileobj).getroot()
         manifest = cls()
         manifest.version = xml.version
@@ -92,7 +93,11 @@ class DownloadManifest(object):
         return manifest
 
 
-
+    def __repr__(self):
+        buf = ""
+        for key in self.__dict__:
+                buf += "\n" + str(key) + " -->: " + str(self.__dict__[key])
+        return buf
 
 
 
