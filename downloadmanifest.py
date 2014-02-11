@@ -65,7 +65,7 @@ class DownloadManifest(object):
         manifest.enc_key = xml.bundle.__getattr__('encrypted-key')
         manifest.enc_iv = xml.bundle.__getattr__('encrypted-iv')
         manifest.image_size = long(xml.image.size)
-        manifest.part_count = int(xml.image.parts.get('count'))
+        partcount = xml.image.parts.get('count')
         manifest.signature = xml.signature
         manifest.signature_algorithm = xml.signature.get('algorithm')
         manifest.image_parts = [None] * manifest.part_count
@@ -80,10 +80,14 @@ class DownloadManifest(object):
                 part_index=part_index,
                 bytes_start=bytes_start,
                 bytes_end=bytes_end)
-        if len(manifest.image_parts) != manifest.part_count:
-            raise ValueError(
-                'Part count {0} does not equal parts found:{1}'
-                .format(len(manifest.image_parts)), manifest.part_count)
+        if partcount is not None:
+            manifest.part_count = int(partcount)
+            if len(manifest.image_parts) != manifest.part_count:
+                raise ValueError(
+                    'Part count {0} does not equal parts found:{1}'
+                    .format(len(manifest.image_parts)), manifest.part_count)
+        else:
+            manifest.part_count = len(manifest.image_parts)
         for index, part in enumerate(manifest.image_parts):
             if part is None:
                 raise ValueError('part {0} must not be None'.format(index))
