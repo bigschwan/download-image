@@ -8,14 +8,17 @@ class DownloadPart(object):
     def __init__(self,
                  get_url,
                  part_index,
-                 bytes_start,
-                 bytes_end,
+                 bytes_start=None,
+                 bytes_end=None,
                  chunk_size=8192):
         self.get_url = get_url
         self.part_index = part_index
         self.bytes_start = long(bytes_start)
         self.bytes_end = long(bytes_end)
-        self.size = long(self.bytes_end-self.bytes_start)
+        if bytes_end is not None and bytes_start is not None:
+            self.size = long(self.bytes_end-self.bytes_start)
+        else:
+            self.size = None
         self.chunk_size = chunk_size
 
     def download(self, dest_fileobj, chunk_size=None):

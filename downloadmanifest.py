@@ -69,7 +69,8 @@ class DownloadManifest(object):
         partcount = xml.image.parts.get('count')
         manifest.signature = xml.signature
         manifest.signature_algorithm = xml.signature.get('algorithm')
-        manifest.image_parts = [None] * manifest.part_count
+        for part in xml.image.parts.iter(tag='part'):
+            manifest.image_parts.append(None)
         for xml_part in xml.image.parts.iter(tag='part'):
             part_index = int(xml_part.get('index'))
             byte_range = xml_part.__getattr__('byte-range')
