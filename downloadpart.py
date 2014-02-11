@@ -30,5 +30,5 @@ class DownloadPart(object):
         return bytes
 
     def __repr__(self):
-        return 'DownloadPart({0}, {1}, {2}, {3})'.format(
+        return 'DownloadPart({0}, {1} )'.format(
             repr(self.part_index), repr(self.get_url))
