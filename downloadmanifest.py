@@ -73,7 +73,8 @@ class DownloadManifest(object):
             manifest.image_parts.append(None)
         for xml_part in xml.image.parts.iter(tag='part'):
             part_index = int(xml_part.get('index'))
-            byte_range = xml_part.__getattr__('byte-range')
+            if hasattr(xml_part, 'byte-range'):
+                byte_range = xml_part.__getattr__('byte-range')
             bytes_start = byte_range.get('start')
             bytes_end = byte_range.get('end')
             get_url = xml_part.__getattr__('get-url')
