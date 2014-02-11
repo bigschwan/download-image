@@ -73,16 +73,10 @@ class DownloadManifest(object):
             manifest.image_parts.append(None)
         for xml_part in xml.image.parts.iter(tag='part'):
             part_index = int(xml_part.get('index'))
-            if hasattr(xml_part, 'byte-range'):
-                byte_range = xml_part.__getattr__('byte-range')
-            bytes_start = byte_range.get('start')
-            bytes_end = byte_range.get('end')
             get_url = xml_part.__getattr__('get-url')
             manifest.image_parts[part_index] = DownloadPart(
                 get_url=get_url,
-                part_index=part_index,
-                bytes_start=bytes_start,
-                bytes_end=bytes_end)
+                part_index=part_index)
         if partcount is not None:
             manifest.part_count = int(partcount)
             if len(manifest.image_parts) != manifest.part_count:
