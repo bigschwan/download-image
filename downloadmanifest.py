@@ -51,6 +51,7 @@ class DownloadManifest(object):
         for chunk in r.iter_content(chunk_size):
             fileobj.write(chunk)
         fileobj.flush()
+        fileobj.seek(0)
         return cls._read_from_fileobj(manifest_fileobj=fileobj, xsd=xsd)
 
     @classmethod
