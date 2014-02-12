@@ -116,7 +116,8 @@ class DownloadImage(object):
         with fileobj:
             manifest = DownloadManifest._read_from_fileobj(
                 manifest_fileobj=fileobj,
-                xsd=self.args.xsd)
+                xsd=self.args.xsd,
+                key_filename=self.args.privatekey)
         return manifest
 
     def _read_manifest_from_file(self):
@@ -130,19 +131,22 @@ class DownloadImage(object):
             raise ArgumentTypeError("Manifest '{0}' is not a file"
                                     .format(self.args.manifest))
         #Read manifest into BundleManifest obj...
-        return DownloadManifest.read_from_file(manifest_path, self.args.xsd)
+        return DownloadManifest.read_from_file(
+                manifest_path,
+                self.args.xsd,
+                key_filename=self.args.privatekey)
 
     def _read_manifest_from_url(self):
         self.log.debug('Reading from remote manifest from url')
-        return DownloadManifest.read_from_url(manifest_url=self.args.manifest,
-                                              xsd=self.args.xsd)
+        return DownloadManifest.read_from_url(
+                manifest_url=self.args.manifest,
+                xsd=self.args.xsd,
+                key_filename=self.args.privatekey)
 
     def _get_download_manifest_obj(self):
         self.log.debug('Create DownloadManifest obj from the manifest '
                        'argument...')
         manifest = self.args.manifest
-        xsd_file = self.args.xsd
-        manifest_url = None
         if manifest:
             if not isinstance(manifest, DownloadManifest):
                 if manifest == '-':

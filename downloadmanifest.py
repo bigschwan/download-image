@@ -46,14 +46,16 @@ class DownloadManifest(object):
         raise ValueError("Failed to decrypt the manifest encryption key.")
 
     @classmethod
-    def read_from_file(cls, manifest_path, xsd=None):
+    def read_from_file(cls, manifest_path, xsd=None, key_filename=None):
         xsd_fileobj = None
         if xsd:
             if not isinstance(xsd, file):
                 xsd = open(xsd)
         try:
             manifest_fileobj = open(manifest_path)
-            return cls._read_from_fileobj(manifest_fileobj, xsd=xsd)
+            return cls._read_from_fileobj(manifest_fileobj,
+                                          xsd=xsd,
+                                          key_filename=key_filename)
         finally:
             if xsd_fileobj:
                 xsd_fileobj.close()
@@ -61,7 +63,11 @@ class DownloadManifest(object):
                 manifest_fileobj.close()
 
     @classmethod
-    def read_from_url(cls, manifest_url, chunk_size=8192, xsd=None):
+    def read_from_url(cls,
+                      manifest_url,
+                      chunk_size=8192,
+                      xsd=None,
+                      key_filename=None):
         fileobj = BytesIO()
         r = requests.get(manifest_url, stream=True)
         r.raise_for_status()
@@ -69,7 +75,9 @@ class DownloadManifest(object):
             fileobj.write(chunk)
         fileobj.flush()
         fileobj.seek(0)
-        return cls._read_from_fileobj(manifest_fileobj=fileobj, xsd=xsd)
+        return cls._read_from_fileobj(manifest_fileobj=fileobj,
+                                      xsd=xsd,
+                                      key_filename=key_filename)
 
     @classmethod
     def _read_from_fileobj(cls, manifest_fileobj, xsd=None, key_filename=None):
