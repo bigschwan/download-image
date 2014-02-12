@@ -23,7 +23,6 @@ class DownloadPart(object):
             HE.args = [str(self) + "\n" + str(HE.message)]
             raise HE
         for chunk in r.iter_content(chunk_size):
-            print 'chunk' + str(chunk)
             dest_fileobj.write(chunk)
             bytes += len(chunk)
         dest_fileobj.flush()

@@ -40,6 +40,9 @@ class DownloadImage(object):
                             help='''log file path to write to''')
         parser.add_argument('--loglevel', dest='loglevel', default='WARNING',
                             help='''log level for output''')
+        parser.add_argument('--dumpmanifest', dest='dumpmanifest',
+                            help='''Get and show manifest then exit''')
+
 
         #Set any kwargs from init to default values for parsed args...
         #Handle the cli arguments...
@@ -223,6 +226,9 @@ class DownloadImage(object):
 
     def main(self):
         manifest = self.args.manifest
+        if self.args.dumpmanifest:
+            print str(manifest)
+            return
         self.log.debug('\nMANIFEST:' + str(manifest))
         dest_file = self.args.destination
         if manifest.file_format == 'BUNDLE':
