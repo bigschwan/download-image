@@ -2,7 +2,9 @@ import logging
 import lxml.etree
 import lxml.objectify
 import requests
+import binascii
 from io import BytesIO
+from subprocess import Popen, PIPE
 from downloadpart import DownloadPart
 
 
@@ -27,6 +29,21 @@ class DownloadManifest(object):
         xsd_schema = lxml.etree.XMLSchema(xsd_doc)
         xml_doc = lxml.etree.parse(manifest_fileobj)
         xsd_schema.assertValid(xml_doc)
+
+    @classmethod
+    def _decrypt_hex_key(cls, hex_encrypted_key, key_filename):
+        #borrowed from euca2ools...
+        popen = Popen(['openssl', 'rsautl', '-decrypt', '-pkcs',
+                        '-inkey', key_filename], stdin=PIPE, stdout=PIPE)
+        binary_encrypted_key = binascii.unhexlify(hex_encrypted_key)
+        (decrypted_key, _) = popen.communicate(binary_encrypted_key)
+        try:
+            # Make sure it might actually be an encryption key.
+            int(decrypted_key, 16)
+            return decrypted_key
+        except ValueError:
+            pass
+        raise ValueError("Failed to decrypt the manifest encryption key.")
 
     @classmethod
     def read_from_file(cls, manifest_path, xsd=None):
@@ -55,7 +72,7 @@ class DownloadManifest(object):
         return cls._read_from_fileobj(manifest_fileobj=fileobj, xsd=xsd)
 
     @classmethod
-    def _read_from_fileobj(cls, manifest_fileobj, xsd=None):
+    def _read_from_fileobj(cls, manifest_fileobj, xsd=None, key_filename=None):
         if xsd is not None:
             cls._validate_manifest(manifest_fileobj, xsd)
         #manifest_fileobj.seek(0)
@@ -65,6 +82,11 @@ class DownloadManifest(object):
         manifest.file_format = str(xml.__getattr__('file-format')).strip()
         manifest.enc_key = xml.bundle.__getattr__('encrypted-key')
         manifest.enc_iv = xml.bundle.__getattr__('encrypted-iv')
+        if key_filename:
+            manifest.enc_key = cls._decrypt_hex_key(manifest.enc_key,
+                                                    key_filename=key_filename)
+            manifest.enc_iv = cls._decrypt_hex_key(manifest.enc_iv,
+                                                    key_filename=key_filename)
         manifest.image_size = long(xml.image.size)
         partcount = xml.image.parts.get('count')
         manifest.signature = xml.signature

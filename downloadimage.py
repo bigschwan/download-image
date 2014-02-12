@@ -1,5 +1,5 @@
 import argparse
-from argparse import ArgumentTypeError
+from argparse import ArgumentTypeError, ArgumentError
 from urlparse import urlparse
 import os
 import sys
@@ -22,6 +22,9 @@ class DownloadImage(object):
         parser.add_argument('-d', '--dest', dest='destination', required=True,
                             help='''Destination path to write image to.
                             Use '-' for stdout.''')
+        parser.add_argument('-k', '--privatekey', dest='privatekey',
+                            help='''file containing the private key to decrypt
+                            the bundle with.''')
         parser.add_argument('-x', '--xsd', dest='xsd', default=None,
                             help='''Path to 'download-manifest xsd used
                             to validate manfiest xml.''')
@@ -74,7 +77,7 @@ class DownloadImage(object):
                 self.log.handlers.append(
                     logging.FileHandler(self.args.logfile))
             if self.args.debug:
-                self.log.handlers.append(logging.StreamHandler(sys.stdout))
+                self.log.handlers.append(logging.StreamHandler(sys.stderr))
         for hndlr in self.log.handlers:
             hndlr.setLevel(loglevel)
             hndlr.setFormatter(fmt)
@@ -223,6 +226,9 @@ class DownloadImage(object):
         self.log.debug('\nMANIFEST:' + str(manifest))
         dest_file = self.args.destination
         if manifest.file_format == 'BUNDLE':
+            if not self.args.privatekey:
+                raise ArgumentError(self.args.privatekey,
+                                    'Bundle type needs privatekey -k')
             return self._download_to_unbundlestream(manifest=manifest)
         else:
             if dest_file == "-":
