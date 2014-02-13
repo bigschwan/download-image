@@ -41,9 +41,8 @@ class DownloadManifest(object):
             # Make sure it might actually be an encryption key.
             int(decrypted_key, 16)
             return decrypted_key
-        except ValueError:
-            pass
-        raise ValueError("Failed to decrypt the manifest encryption key.")
+        except ValueError as VE:
+            raise ValueError("Failed to decrypt the manifest encryption key." + str(VE))
 
     @classmethod
     def read_from_file(cls, manifest_path, xsd=None, key_filename=None):
@@ -88,8 +87,8 @@ class DownloadManifest(object):
         manifest = cls()
         manifest.version = xml.version
         manifest.file_format = str(xml.__getattr__('file-format')).strip()
-        manifest.enc_key = xml.bundle.__getattr__('encrypted-key')
-        manifest.enc_iv = xml.bundle.__getattr__('encrypted-iv')
+        manifest.enc_key = str(xml.bundle.__getattr__('encrypted-key'))
+        manifest.enc_iv = str(xml.bundle.__getattr__('encrypted-iv'))
         if key_filename:
             manifest.enc_key = cls._decrypt_hex_key(manifest.enc_key,
                                                     key_filename=key_filename)
